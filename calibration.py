@@ -12,8 +12,9 @@ def check_camera_matrix_exist():
     return os.path.exists(dir_path+"/cam_matrix.npy")
 
 
-def calibrate_camera(row=6, col=7, mm=1, dataPath="Test"):
+def calibrate_camera(row=6, col=7, mm=1, dataPath="Test", s_format="jpg"):
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....
+    print("Calibrate parameters = ",row, col, mm, dataPath)
     objp = np.zeros((row*col, 3), np.float32)
     objp[:, :2] = np.mgrid[0:col*mm:mm, 0:row*mm:mm].T.reshape(-1, 2)
     # Arrays to store object points and image points from all the images.
@@ -21,7 +22,8 @@ def calibrate_camera(row=6, col=7, mm=1, dataPath="Test"):
     imgpoints = []  # 2d points in image plane.
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     # retrive images from Test
-    images = glob.glob('{}/*.jpg'.format(dataPath))
+    images = glob.glob('{}/*.{}'.format(dataPath, s_format))
+    print("Calibrate images = ", images)
     for fname in images:
         img = cv.imread(fname)
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
@@ -77,6 +79,7 @@ def undistort_image(images, save_dir):
         x, y, w, h = roi
         dst = dst[y:y+h, x:x+w]
         fname = os.path.basename(fname)
+        print("Writing: ", "{}/{}".format(save_dir, fname))
         cv.imwrite("{}/{}".format(save_dir, fname), dst)
     print("save Done!")
 
@@ -87,6 +90,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not check_camera_matrix_exist():
-        calibrate_camera(args.size[0], args.size[1], args.mm, args.load_dir)
-    images = glob.glob('Test/*.jpg')
+        calibrate_camera(args.size_row, args.size_col, args.mm, args.img_cal, args.s_format)
+    else:
+        print("!!! Calibrate file found, if need re-calibrate, delete 2 .npy files generated at directory!")
+    images = glob.glob('{}/*.{}'.format(args.load_dir, args.s_format))
+    print("Image to be undistorted = ", images)
     undistort_image(images, args.save_dir)
